@@ -7,7 +7,8 @@ jQuery(document).ready(function(){
     // Render the map
     jQuery("#map").bMap({
         mapZoom: parseInt( mapSettings.mapZoom ),
-        mapCenter: [ parseFloat( mapSettings.mapLat ), parseFloat( mapSettings.mapLon ) ]
+        mapCenter: [ parseFloat( mapSettings.mapLat ), parseFloat( mapSettings.mapLon ) ],
+        mapSidebar: mapSettings.mapSidebar
     });
     
     // Load the markers
@@ -16,6 +17,24 @@ jQuery(document).ready(function(){
         action: mapSettings.mapID,			
         vars: []
     });
+    
+    // Some basic form validation
+    jQuery("#sbmt").click(function(event) {
+        var err = [];
+        jQuery("#map-form label.required").css('color','inherit');
+        jQuery("#map-form label.required").each(function() {
+                if(jQuery('input[name='+this.htmlFor+']').val() == '')
+                    err[err.length] = this.htmlFor;
+        });
+        if(jQuery('#point.required').val() == '')
+            err[err.length] = this.name;
+        if (err.length > 0) {
+            alert(mapSettings.failMessage);
+            jQuery('#map-form label.required').css('color','red');
+        }
+        return (err.length <= 0);
+    });
+
     
     // Enable reverse geocoding
     jQuery("#srch").click( function() {

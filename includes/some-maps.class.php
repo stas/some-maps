@@ -1,28 +1,40 @@
 <?php
-class LugMap {
+class SomeMaps {
+    public static $post_type = 'map';
+    
+    public static $meta_keys = array(
+        'map_settings',
+        'map_submits'
+    );
+    
+    public static $comment_meta = array(
+        'point_subtitle',
+        'point_pos'
+    );
+    
     function init() {
         add_action( 'init', array( __CLASS__, 'ajax' ) );
         add_action( 'init', array( __CLASS__, 'post_type' ) );
         add_action( 'init', array( __CLASS__, 'enqueues' ) );
         add_action( 'init', array( __CLASS__, 'reverse_geocode' ) );
-        add_action( 'wp_head', array( __CLASS__, 'add_new_entry' ) );
-        add_action( 'save_post', array( __CLASS__, 'settings_box_process' ) );
-        add_action( 'admin_head', array( __CLASS__, 'add_new_entry' ) );
+        add_action( 'wp', array( __CLASS__, 'save_point' ) );
+        add_action( 'save_post', array( __CLASS__, 'save_settings' ) );
+        add_action( 'save_post', array( __CLASS__, 'save_point' ) );
         add_filter( 'the_comments', array( __CLASS__, 'filter_entries' ) );
-        add_shortcode( 'lugmap', array( __CLASS__, 'shortcode' ) );
+        add_shortcode( 'map', array( __CLASS__, 'shortcode' ) );
     }
     
     function post_type() {
-        register_post_type( 'lugmap', array(
+        register_post_type( self::$post_type, array(
             'labels' => array(
-                'name' => __('Lug Map', 'newlugmap' ),
-                'singular_name' => __('Lug Map', 'newlugmap' ),
-                'add_new_item' => __('New Point', 'newlugmap' ),
-                'edit_item' => __('Edit Point', 'newlugmap' ),
+                'name' => __('Maps', 'some-maps' ),
+                'singular_name' => __('Map', 'some-maps' ),
+                'add_new_item' => __('New Map', 'some-maps' ),
+                'edit_item' => __('Edit Map', 'some-maps' ),
             ),
             'public' => true,
             'map_meta_cap' => true,
-            'rewrite' => array('slug' => 'lugmap'),
+            'rewrite' => array( 'slug' => self::$post_type ),
             'supports' => array( 'title', 'comments' ),
             'register_meta_box_cb' => array( __CLASS__, 'meta_boxes' ),
             'exclude_from_search' => true,
@@ -32,30 +44,28 @@ class LugMap {
     }
     
     function meta_boxes( $post ) {
-        remove_meta_box( 'commentstatusdiv', 'lugmap', 'normal' );
+        remove_meta_box( 'commentstatusdiv', self::$post_type, 'normal' );
         // Change comments to list entries
-        remove_meta_box( 'commentsdiv', 'lugmap', 'normal' );
+        remove_meta_box( 'commentsdiv', self::$post_type, 'normal' );
         // Add shortcode box
-        add_meta_box( 'lugmap_shortcode', __( 'Shortcode', 'newlugmap' ), array(__CLASS__, 'shortcode_box'), 'lugmap', 'side' );
+        add_meta_box( 'map_shortcode', __( 'Shortcode', 'some-maps' ), array(__CLASS__, 'shortcode_box'), self::$post_type, 'side' );
         // Add default centering
-        add_meta_box( 'lugmap_settings', __( 'Settings', 'newlugmap' ), array(__CLASS__, 'settings_box'), 'lugmap', 'side' );
+        add_meta_box( 'map_settings', __( 'Settings', 'some-maps' ), array(__CLASS__, 'settings_box'), self::$post_type, 'side' );
         // Meta box to add a new entry
         if( 'publish' == $post->post_status ) {
-            add_meta_box('commentsdiv', __('Entries', 'newlugmap'), 'post_comment_meta_box', 'lugmap', 'normal' );
-            add_meta_box( 'lugmap_new_entry', __( 'Create New Entry', 'newlugmap' ), array(__CLASS__, 'new_entry_box'), 'lugmap', 'normal' );
+            add_meta_box('commentsdiv', __('Entries', 'some-maps'), 'post_comment_meta_box', self::$post_type, 'normal' );
+            add_meta_box( 'add_new_point', __( 'Add Points', 'some-maps' ), array(__CLASS__, 'new_point_box'), self::$post_type, 'normal' );
         }
     }
     
-    function settings_box_process( $post_id ) {
-        $meta_key = 'map_settings';
-        $meta_key_submits = 'map_submits';
+    function save_settings( $post_id ) {
         $width = null;
         $height = null;
         $lat = null;
         $lon = null;
         $zoom = null;
         
-        if ( !wp_verify_nonce( $_POST['newlugmap_nonce'], 'newlugmap_settings_box' ))
+        if ( !wp_verify_nonce( $_POST['mapsettings_nonce'], 'mapsettings' ))
             return $post_id;
         
         if ( !current_user_can( 'edit_post', $post_id ) )
@@ -79,41 +89,40 @@ class LugMap {
         if( isset( $_POST['zoom'] ) && !empty( $_POST['zoom'] ) )
             $zoom = sanitize_key( $_POST['zoom'] );
         
-        update_post_meta( $post_id, $meta_key_submits, $submits );
+        update_post_meta( $post_id, self::$meta_keys[1], $submits );
         
         if( $width && $height && $lat && $lon && $zoom ) {
             $key_value = implode( ',', array( $width, $height, $lat, $lon, $zoom ) );
-            update_post_meta( $post_id, $meta_key, $key_value );
+            update_post_meta( $post_id, self::$meta_keys[0], $key_value );
         }
         
         return $post_id;
     }
     
     function get_map_settings( $post_id = null ) {
-        $meta_key = 'map_settings';
-        $meta_key_submits = 'map_submits';
+        $settings = get_post_meta( $post_id, self::$meta_keys[0], true ) . ',' . $post_id;
+        $setting_submits = get_post_meta( $post_id, self::$meta_keys[1], true );
         
-        $settings = get_post_meta( $post_id, $meta_key, true ) . ',' . $post_id;
-        $setting_submits = get_post_meta( $post_id, $meta_key_submits, true );
+        $settings = array_combine(
+            array( 'mapWidth', 'mapHeight', 'mapLat', 'mapLon', 'mapZoom', 'mapID' ), explode( ',', $settings )
+        );
         
-        $settings = array_combine( array( 'mapWidth', 'mapHeight', 'mapLat', 'mapLon', 'mapZoom', 'mapID' ), explode( ',', $settings ) );
+        $settings['mapSidebar'] = apply_filters( 'map_set_sidebar', 'map-listing' );
         $settings['mapSubmits'] = $setting_submits;
+        $settings['failMessage'] = __( 'Please fill all the required fields!', 'some-maps' );
         
         return $settings;
     }
     
     function settings_box( $post ) {
-        if( 'publish' != $post->post_status ) 
-            echo '<p>' . __( 'Publish this map to access it\'s settings', 'newlugmap' ) . '</p>';
-        else 
-            self::template_render( 'settings_box', self::get_map_settings( $post->ID ) );
+        self::template_render( 'settings_box', self::get_map_settings( $post->ID ) );
     }
     
     function shortcode_box( $post ) {
         if( 'publish' != $post->post_status ) 
-            echo '<p>' . __( 'Publish this map to get it\'s shortcode', 'newlugmap' ) . '</p>';
+            echo '<p>' . __( 'Publish this map to get it\'s shortcode', 'some-maps' ) . '</p>';
         else {
-            echo '<input type="text" class="long-text" value="[lugmap ' . $post->ID . ']" />';
+            echo '<input type="text" class="long-text" value="[' . self::$post_type . ' ' . $post->ID . ']" />';
         }
     }
     
@@ -122,78 +131,89 @@ class LugMap {
         $map = get_post( $map_id );
         $settings = self::get_map_settings( $map_id );
         
-        if( $map && $map->post_type == 'lugmap' ) {
+        if( $map && $map->post_type == self::$post_type ) {
             // This will load map settings
-            wp_localize_script( 'new-lug-map', 'mapSettings', $settings );
-            if( $settings['mapSubmits'] )
-                return self::template_render( 'form', null, false );
-            else
-                return self::template_render( 'single', null, false );
+            wp_localize_script( 'some-maps', 'mapSettings', $settings );
+            
+            return self::template_render( 'single', $settings, false );
         }
     }
     
-    function add_new_entry() {
+    function save_point() {
         global $post;
         
-        if ( !wp_verify_nonce( $_POST['newlugmap_nonce'], 'newlugmap_entry' ))
-            return;
+        $verified_submit = 1;
+        
+        if ( !wp_verify_nonce( $_POST['newpoint_nonce'], 'newpoint' ))
+            if ( !wp_verify_nonce( $_POST['newpoint_nonce'], 'newpoint_anon' ))
+                return;
+            else
+                $verified_submit = 0;
         
         if( !isset( $_POST['lm'] ) || empty( $_POST['lm'] ) )
             return;
         
+        $map_id = $post->ID;
         $title = sanitize_text_field( $_POST['lm']['title'] );
         $subtitle = sanitize_text_field( $_POST['lm']['subtitle'] );
         $email = sanitize_email( $_POST['lm']['email'] );
         $www = sanitize_url( $_POST['lm']['www'] );
         $desc = esc_html( $_POST['lm']['dsc'] );
         $point = sanitize_text_field($_POST['lm']['point']);
+        if( isset( $_POST['lm']['map_id'] ) )
+            $map_id = (int) $_POST['lm']['map_id'];
         
-        if( $title && $email && $point ){ 
-            $entry_id = wp_insert_comment(
-                array(
-                    "comment_post_ID" => $post->ID,
-                    "comment_author" => $title,
-                    "comment_author_email" => $email,
-                    "comment_author_url" => $www,
-                    "comment_content" => $desc,
-                    "comment_approved" => '1'
-                )
+        if( $title && $email && $point ){
+            $point_data = array(
+                "comment_post_ID" => $map_id,
+                "comment_author" => $title,
+                "comment_author_email" => $email,
+                "comment_author_url" => $www,
+                "comment_content" => $desc
             );
-            if( $entry_id ) {
-                add_comment_meta( $entry_id, 'point_subtitle', $subtitle, true  );
-                add_comment_meta( $entry_id, 'point_pos', $point, true  );
+            
+            if( !$verified_submit )
+                $point_data['comment_approved'] = wp_allow_comment( $point_data );
+            else
+                $point_data['comment_approved'] = 1;
+            
+            $point_id = wp_insert_comment( $point_data );
+            
+            if( $point_id ) {
+                add_comment_meta( $point_id, self::$comment_meta[0], $subtitle, true  );
+                add_comment_meta( $point_id, self::$comment_meta[1], $point, true  );
             }
         }
     }
     
-    function new_entry_box( $post ) {
+    function new_point_box( $post ) {
         // This will load map settings
-        wp_localize_script( 'new-lug-map', 'mapSettings',  self::get_map_settings( $post->ID ) );
+        wp_localize_script( 'some-maps', 'mapSettings',  self::get_map_settings( $post->ID ) );
         
         self::template_render( 'form' );
     }
     
     function enqueues() {
-        wp_register_script( 'googlemaps-v3', 'http://maps.google.com/maps/api/js?sensor=false', null, NEW_LUG_MAP );
-        wp_register_script( 'bmap', '/wp-content/plugins/new-lug-map/js/jQuery.bMap.1.3.min.js', array( 'jquery', 'googlemaps-v3' ), '1.3' );
+        wp_register_script( 'googlemaps-v3', 'http://maps.google.com/maps/api/js?sensor=false', null, SOME_MAPS );
+        wp_register_script( 'bmap', '/wp-content/plugins/some-maps/js/jQuery.bMap.1.3.min.js', array( 'jquery', 'googlemaps-v3' ), '1.3' );
         //wp_register_script( 'bmap', plugins_url( '/js/jQuery.bMap.1.3.min.js', __FILE__ ), array( 'jquery', 'googlemaps-v3' ), '1.3' );
-        wp_enqueue_script( 'new-lug-map', '/wp-content/plugins/new-lug-map/js/new-lug-map.js', array( 'bmap' ), '1.3', true );
-        //wp_enqueue_script( 'new-lug-map', plugins_url( '/js/new-lug-map.js', __FILE__ ), array( 'bmap' ), '1.3', true );
+        wp_enqueue_script( 'some-maps', '/wp-content/plugins/some-maps/js/some-maps.js', array( 'bmap' ), SOME_MAPS, true );
+        //wp_enqueue_script( 'some-maps', plugins_url( '/js/some-maps.js', __FILE__ ), array( 'bmap' ), SOME_MAPS, true );
     }
     
     function get_map_data( $post_id ) {
         if( !intval( $post_id ) && $post_id == 0 )
             return;
         
-        $entries = get_comments( array( 'post_id' => $post_id ) );
+        $entries = get_approved_comments( $post_id );
         if( empty( $entries ) )
             return;
         
         $points = array();
         foreach( $entries as $e ) {
-            $pos = get_comment_meta( $e->comment_ID, 'point_pos', true );
+            $pos = get_comment_meta( $e->comment_ID, self::$comment_meta[1], true );
             $pos = explode( ',', $pos );
-            $subtitle = get_comment_meta( $e->comment_ID, 'point_subtitle', true );
+            $subtitle = get_comment_meta( $e->comment_ID, self::$comment_meta[0], true );
             $subtitle = $subtitle ? "($subtitle)" : '';
             $points[] = array(
                 "lat" => $pos[0],
@@ -207,7 +227,7 @@ class LugMap {
     
     function ajax() {
         if( isset( $_GET['ajax_map'] ) && isset( $_GET['action'] ) ) {
-            define( 'NEW_LUG_MAP_AJAX', true );
+            define( 'MAP_AJAX', true );
             $response['name'] = "Map_" . intval( $_GET['action'] );
             $response['type'] = "marker";
             $response['data'] = self::get_map_data( intval( $_GET['action'] ) );
@@ -236,11 +256,11 @@ class LugMap {
             return $comments;
         
         // Do no filtering on ajax
-        if( defined( 'NEW_LUG_MAP_AJAX' ) && NEW_LUG_MAP_AJAX )
+        if( defined( 'MAP_AJAX' ) && MAP_AJAX )
             return $comments;
         
         for( $i = 0; $i <= count( $comments ); $i++ )
-            if( get_post_type( $comments[$i]->comment_post_ID ) == 'lugmap' )
+            if( get_post_type( $comments[$i]->comment_post_ID ) == self::$post_type )
                 unset( $comments[$i] );
         
         return $comments;
@@ -248,8 +268,11 @@ class LugMap {
     
     function template_render( $name, $vars = null, $echo = true ) {
         ob_start();
-        extract( $vars );
+        if( !empty( $vars ) )
+            extract( $vars );
+        
         include dirname( __FILE__ ) . '/templates/' . $name . '.php';
+        
         $data = ob_get_clean();
         
         if( $echo )

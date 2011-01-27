@@ -1,8 +1,8 @@
 <?php
 /*
-Plugin Name: The New Lug Map
+Plugin Name: Some Maps
 Plugin URI: http://softwareliber.ro/harta/
-Description: Create a map with lug locations, powered by Google Maps. 
+Description: Create maps with markers easily, powered by Google Maps. 
 Version: 2.0
 Author: Stas Sușcov
 Author URI: http://stas.nerd.ro/
@@ -26,9 +26,9 @@ Author URI: http://stas.nerd.ro/
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-define( 'NEW_LUG_MAP', '2.0' );
+define( 'SOME_MAPS', '2.0' );
 
-require_once dirname( __FILE__ ) . '/includes/lugmap.class.php';
+require_once dirname( __FILE__ ) . '/includes/some-maps.class.php';
 
-LugMap::init();
+SomeMaps::init();
 ?>
