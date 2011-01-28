@@ -1,0 +1,12 @@
+/* Form */
+#map-form label { display: block; }
+#map-form input[type="text"] { width: 80%; }
+#map-form textarea { width: 80%; height: 60px; }
+
+/* Bubbles */
+#map div { font-size: 95%; }
+#map h2 { font-size: 120% !important; margin: 0; }
+
+/* Sidebar */
+.mapSidebar div { cursor: pointer; }
+.mapSidebar .bSideSelect { text-decoration: underline; }
