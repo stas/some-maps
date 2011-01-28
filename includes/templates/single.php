@@ -31,18 +31,18 @@
         
         <div class="form-field">
             <label for="f_www"><?php _e( "Web Page", "some-maps" )?></label>
-            <input class="inpt" type="text" id="f_www" name="lm[www]" value="http://" />
+            <input class="inpt" type="text" id="f_www" name="lm[www]" />
         </div>
         
         <div class="form-field">
             <label for="f_adr" class="adr required" ><?php _e( "Geographical Position", "some-maps" )?>*</label>
-            <input id="adr" type="text" id="f_adr" name="lm[adr]" value="<?php _e( "Town, County, Country", "some-maps" )?>" style="width: 85%;" />
+            <input id="adr" type="text" id="f_adr" name="lm[adr]" value="<?php _e( "Town, County, Country", "some-maps" )?>" />
             <a href="#" id="srch" class="button" ><?php _e( "Search", "some-maps" )?></a>
         </div>
         
         <p class="submit" style="float: none;">
             <input type="submit" id="sbmt" class="button-primary" value="<?php _e( "Create", "some-maps" )?>" />
-            <?php _e( "Required fields are marked with <em>*</em>.", "some-maps" )?>
+            <em><small><?php _e( "Required fields are marked with <em>*</em>.", "some-maps" )?></small></em>
         </p>
     </form>
 </div>

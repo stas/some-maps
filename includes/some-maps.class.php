@@ -1,21 +1,34 @@
 <?php
+/**
+ * SomeMaps class
+ */
 class SomeMaps {
+    // Our post type
     public static $post_type = 'map';
     
+    // Post type meta keys
     public static $meta_keys = array(
         'map_settings',
-        'map_submits'
+        'map_submits',
+        'map_sidebar'
     );
     
+    // Post type comments meta
     public static $comment_meta = array(
         'point_subtitle',
         'point_pos'
     );
     
+    /**
+     * init()
+     * 
+     * Sets the hooks and other initialization stuff
+     */
     function init() {
-        add_action( 'init', array( __CLASS__, 'ajax' ) );
         add_action( 'init', array( __CLASS__, 'post_type' ) );
         add_action( 'init', array( __CLASS__, 'enqueues' ) );
+        add_action( 'init', array( __CLASS__, 'localization' ) );
+        add_action( 'init', array( __CLASS__, 'ajax' ) );
         add_action( 'init', array( __CLASS__, 'reverse_geocode' ) );
         add_action( 'wp', array( __CLASS__, 'save_point' ) );
         add_action( 'save_post', array( __CLASS__, 'save_settings' ) );
@@ -24,6 +37,20 @@ class SomeMaps {
         add_shortcode( 'map', array( __CLASS__, 'shortcode' ) );
     }
     
+    /**
+     * localization()
+     * 
+     * i18n
+     */
+    function localization() {
+        load_plugin_textdomain( 'some-maps', false, basename( dirname( __FILE__ ) ) . '../languages' );
+    }
+    
+    /**
+     * post_type()
+     * 
+     * Register our post type
+     */
     function post_type() {
         register_post_type( self::$post_type, array(
             'labels' => array(
@@ -43,6 +70,12 @@ class SomeMaps {
         ) );
     }
     
+    /**
+     * meta_boxes( $post )
+     * 
+     * Activate the meta boxes
+     * @param Object $post, the post/page object
+     */
     function meta_boxes( $post ) {
         remove_meta_box( 'commentstatusdiv', self::$post_type, 'normal' );
         // Change comments to list entries
@@ -58,12 +91,20 @@ class SomeMaps {
         }
     }
     
+    /**
+     * save_settings( $post_id )
+     * 
+     * Save sent settings for current map
+     * @param Int $post_id, the ID of the map
+     * @return Int $post_id, the ID of the map
+     */
     function save_settings( $post_id ) {
         $width = null;
         $height = null;
         $lat = null;
         $lon = null;
         $zoom = null;
+        $sidebar = null;
         
         if ( !wp_verify_nonce( $_POST['mapsettings_nonce'], 'mapsettings' ))
             return $post_id;
@@ -89,7 +130,11 @@ class SomeMaps {
         if( isset( $_POST['zoom'] ) && !empty( $_POST['zoom'] ) )
             $zoom = sanitize_key( $_POST['zoom'] );
         
+        if( isset( $_POST['sidebar'] ) && !empty( $_POST['sidebar'] ) )
+            $sidebar = sanitize_text_field( $_POST['sidebar'] );
+        
         update_post_meta( $post_id, self::$meta_keys[1], $submits );
+        update_post_meta( $post_id, self::$meta_keys[2], $sidebar );
         
         if( $width && $height && $lat && $lon && $zoom ) {
             $key_value = implode( ',', array( $width, $height, $lat, $lon, $zoom ) );
@@ -99,25 +144,44 @@ class SomeMaps {
         return $post_id;
     }
     
+    /**
+     * get_map_settings( $post_id )
+     * 
+     * Fetch the settings for given map ID
+     * @param Int $post_id, the ID of the map
+     * @return Mixed $settings, the fetched settings array
+     */
     function get_map_settings( $post_id = null ) {
         $settings = get_post_meta( $post_id, self::$meta_keys[0], true ) . ',' . $post_id;
-        $setting_submits = get_post_meta( $post_id, self::$meta_keys[1], true );
         
         $settings = array_combine(
             array( 'mapWidth', 'mapHeight', 'mapLat', 'mapLon', 'mapZoom', 'mapID' ), explode( ',', $settings )
         );
         
-        $settings['mapSidebar'] = apply_filters( 'map_set_sidebar', 'map-listing' );
-        $settings['mapSubmits'] = $setting_submits;
+        $settings['mapSubmits'] = get_post_meta( $post_id, self::$meta_keys[1], true );
+        $settings['mapSidebar'] = get_post_meta( $post_id, self::$meta_keys[2], true );
         $settings['failMessage'] = __( 'Please fill all the required fields!', 'some-maps' );
+        $settings['loadMsg'] = __( 'Loading...', 'some-maps' );
         
         return $settings;
     }
     
+    /**
+     * settings_box( $post )
+     * 
+     * Render the map settings meta box
+     * @param Object $post, the post/page object
+     */
     function settings_box( $post ) {
         self::template_render( 'settings_box', self::get_map_settings( $post->ID ) );
     }
     
+    /**
+     * shortcode_box( $post )
+     * 
+     * Render the map shortcode meta box
+     * @param Object $post, the post/page object
+     */
     function shortcode_box( $post ) {
         if( 'publish' != $post->post_status ) 
             echo '<p>' . __( 'Publish this map to get it\'s shortcode', 'some-maps' ) . '</p>';
@@ -126,6 +190,13 @@ class SomeMaps {
         }
     }
     
+    /**
+     * shortcode( $args )
+     * 
+     * Handler for our shortcode
+     * @param Mixed $args, the shortcode args
+     * @return String, the rendered template
+     */
     function shortcode( $args ) {
         $map_id = reset($args);
         $map = get_post( $map_id );
@@ -139,6 +210,11 @@ class SomeMaps {
         }
     }
     
+    /**
+     * save_point()
+     *
+     * Methods hooks into `save_post` and saves the new points if those are posted
+     */
     function save_point() {
         global $post;
         
@@ -186,6 +262,12 @@ class SomeMaps {
         }
     }
     
+    /**
+     * new_point_box( $post )
+     * 
+     * Render the new pointer form meta box
+     * @param Object $post, the post/page object
+     */
     function new_point_box( $post ) {
         // This will load map settings
         wp_localize_script( 'some-maps', 'mapSettings',  self::get_map_settings( $post->ID ) );
@@ -193,14 +275,26 @@ class SomeMaps {
         self::template_render( 'form' );
     }
     
+    /**
+     * enqueues()
+     * 
+     * Loads the CSS and JS assides
+     */
     function enqueues() {
         wp_register_script( 'googlemaps-v3', 'http://maps.google.com/maps/api/js?sensor=false', null, SOME_MAPS );
-        wp_register_script( 'bmap', '/wp-content/plugins/some-maps/js/jQuery.bMap.1.3.min.js', array( 'jquery', 'googlemaps-v3' ), '1.3' );
-        //wp_register_script( 'bmap', plugins_url( '/js/jQuery.bMap.1.3.min.js', __FILE__ ), array( 'jquery', 'googlemaps-v3' ), '1.3' );
-        wp_enqueue_script( 'some-maps', '/wp-content/plugins/some-maps/js/some-maps.js', array( 'bmap' ), SOME_MAPS, true );
-        //wp_enqueue_script( 'some-maps', plugins_url( '/js/some-maps.js', __FILE__ ), array( 'bmap' ), SOME_MAPS, true );
+        wp_register_script( 'bmap', plugins_url( '/js/jQuery.bMap.1.3.min.js', __FILE__ ), array( 'jquery', 'googlemaps-v3' ), '1.3' );
+        wp_enqueue_script( 'some-maps', plugins_url( '/js/some-maps.js', __FILE__ ), array( 'bmap' ), SOME_MAPS, true );
+        if( !defined( 'WP_ADMIN' ) )
+            wp_enqueue_style( 'some-maps', plugins_url( '/css/some-maps.css', __FILE__ ), null, SOME_MAPS );
     }
     
+    /**
+     * get_map_data( $post_id )
+     * 
+     * Fetch the data/pointers for given map ID
+     * @param Int $post_id, the ID of the map
+     * @return Mixed $points, the fetched data array, has a filter `get_map_data`
+     */
     function get_map_data( $post_id ) {
         if( !intval( $post_id ) && $post_id == 0 )
             return;
@@ -225,6 +319,11 @@ class SomeMaps {
         return apply_filters( 'get_map_data', $points );
     }
     
+    /**
+     * ajax()
+     *
+     * Ajax request handler for fetching map data
+     */
     function ajax() {
         if( isset( $_GET['ajax_map'] ) && isset( $_GET['action'] ) ) {
             define( 'MAP_AJAX', true );
@@ -235,6 +334,11 @@ class SomeMaps {
         }
     }
     
+    /**
+     * reverse_geocode()
+     *
+     * Ajax reverse geocoder for points localization
+     */
     function reverse_geocode() {
         if( $_SERVER['REMOTE_ADDR'] != $_SERVER['SERVER_ADDR'] )
             return;
@@ -250,6 +354,13 @@ class SomeMaps {
         die( $response['body'] );
     }
     
+    /**
+     * filter_entries( $comments )
+     * 
+     * Filters the comments that belong to a map from other public queries
+     * @param Mixed $comments, the fetched comments
+     * @return Mixed $comments, the filtered comments
+     */
     function filter_entries( $comments ) {
         // Do no filtering in `wp-admin`
         if( defined( 'WP_ADMIN' ) && WP_ADMIN )
@@ -266,6 +377,15 @@ class SomeMaps {
         return $comments;
     }
     
+    /**
+     * template_render( $name, $vars = null, $echo = true )
+     *
+     * Helper to load and render templates easily
+     * @param String $name, the name of the template
+     * @param Mixed $vars, some variables you want to pass to the template
+     * @param Boolean $echo, to echo the results or return as data
+     * @return String $data, the resulted data if $echo is `false`
+     */
     function template_render( $name, $vars = null, $echo = true ) {
         ob_start();
         if( !empty( $vars ) )

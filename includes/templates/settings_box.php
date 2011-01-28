@@ -37,3 +37,8 @@
 <p style="text-align: right;">
     <?php echo sprintf(__('You can use <a href="%1$s">this tool</a> to find out the above information.','some-maps'),'http://www.getlatlon.com/'); ?>
 </p>
+
+<p class="form-field">
+    <label for="f_sidebar"><?php _e( "Sidebar ID", "some-maps" )?></label>
+    <input type="text" id="f_sidebar" name="sidebar" class="long-text" value="<?php echo $mapSidebar; ?>" />
+</p>
