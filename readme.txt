@@ -3,7 +3,7 @@ Contributors: sushkov
 Tags: google, maps, ajax, reverse, geocode, post, type, flexible, simple, shortcode
 Requires at least: WordPress 2.9
 Tested up to: WordPress 3.1
-Stable tag: 1.2
+Stable tag: 1.3
 Donate link: http://stas.nerd.ro/pub/donate/
 
 An easy way to create google maps with markers and embed them in your posts. Uses post types!
@@ -36,6 +36,9 @@ Please report bugs on [plugin page issues tracker](https://github.com/stas/some-
 
 
 == Changelog ==
+
+= 1.3 =
+* Fixed the `enqueues` 404 problem, @props AllanBell
 
 = 1.2 =
 * Fixed the annoying warning, @props AllanBell
