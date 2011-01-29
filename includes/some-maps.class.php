@@ -285,10 +285,10 @@ class SomeMaps {
      */
     function enqueues() {
         wp_register_script( 'googlemaps-v3', 'http://maps.google.com/maps/api/js?sensor=false', null, SOME_MAPS );
-        wp_register_script( 'bmap', plugins_url( '/js/jQuery.bMap.1.3.min.js', __FILE__ ), array( 'jquery', 'googlemaps-v3' ), '1.3' );
-        wp_enqueue_script( 'some-maps', plugins_url( '/js/some-maps.js', __FILE__ ), array( 'bmap' ), SOME_MAPS, true );
+        wp_register_script( 'bmap', plugins_url( '/js/jQuery.bMap.1.3.min.js', SOME_MAPS_PATH ), array( 'jquery', 'googlemaps-v3' ), '1.3' );
+        wp_enqueue_script( 'some-maps', plugins_url( '/js/some-maps.js', SOME_MAPS_PATH ), array( 'bmap' ), SOME_MAPS, true );
         if( !defined( 'WP_ADMIN' ) )
-            wp_enqueue_style( 'some-maps', plugins_url( '/css/some-maps.css', __FILE__ ), null, SOME_MAPS );
+            wp_enqueue_style( 'some-maps', plugins_url( '/css/some-maps.css', SOME_MAPS_PATH ), null, SOME_MAPS );
     }
     
     /**

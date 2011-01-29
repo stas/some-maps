@@ -3,7 +3,7 @@
 Plugin Name: Simple Google Maps
 Plugin URI: https://github.com/stas/some-maps
 Description: Create maps with markers easily, powered by Google Maps. 
-Version: 1.2
+Version: 1.3
 Author: Stas Sușcov
 Author URI: http://stas.nerd.ro/
 */
@@ -26,7 +26,9 @@ Author URI: http://stas.nerd.ro/
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-define( 'SOME_MAPS', '1.2' );
+define( 'SOME_MAPS', '1.3' );
+define( 'SOME_MAPS_PATH', __FILE__ );
+
 require_once dirname( __FILE__ ) . '/includes/some-maps.class.php';
 
 SomeMaps::init();
