@@ -154,9 +154,12 @@ class SomeMaps {
     function get_map_settings( $post_id = null ) {
         $settings = get_post_meta( $post_id, self::$meta_keys[0], true ) . ',' . $post_id;
         
-        $settings = array_combine(
-            array( 'mapWidth', 'mapHeight', 'mapLat', 'mapLon', 'mapZoom', 'mapID' ), explode( ',', $settings )
-        );
+        if( count( explode( ',', $settings ) ) == 6 )
+            $settings = array_combine(
+                array( 'mapWidth', 'mapHeight', 'mapLat', 'mapLon', 'mapZoom', 'mapID' ), explode( ',', $settings )
+            );
+        else
+            $settings = array();
         
         $settings['mapSubmits'] = get_post_meta( $post_id, self::$meta_keys[1], true );
         $settings['mapSidebar'] = get_post_meta( $post_id, self::$meta_keys[2], true );
