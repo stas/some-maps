@@ -1,9 +1,9 @@
 <?php
 /*
 Plugin Name: Simple Google Maps
-Plugin URI: http://softwareliber.ro/harta/
+Plugin URI: https://github.com/stas/some-maps
 Description: Create maps with markers easily, powered by Google Maps. 
-Version: 1.0
+Version: 1.1
 Author: Stas Sușcov
 Author URI: http://stas.nerd.ro/
 */
@@ -26,7 +26,7 @@ Author URI: http://stas.nerd.ro/
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-define( 'SOME_MAPS', '1.0' );
+define( 'SOME_MAPS', '1.1' );
 require_once dirname( __FILE__ ) . '/includes/some-maps.class.php';
 
 SomeMaps::init();
