@@ -106,7 +106,7 @@ class SomeMaps {
         $zoom = null;
         $sidebar = null;
         
-        if ( !wp_verify_nonce( $_POST['mapsettings_nonce'], 'mapsettings' ))
+        if ( isset( $_POST['mapsettings_nonce'] ) && !wp_verify_nonce( $_POST['mapsettings_nonce'], 'mapsettings' ))
             return $post_id;
         
         if ( !current_user_can( 'edit_post', $post_id ) )
@@ -223,8 +223,8 @@ class SomeMaps {
         
         $verified_submit = 1;
         
-        if ( !wp_verify_nonce( $_POST['newpoint_nonce'], 'newpoint' ))
-            if ( !wp_verify_nonce( $_POST['newpoint_nonce'], 'newpoint_anon' ))
+        if ( isset( $_POST['newpoint_nonce'] ) && !wp_verify_nonce( $_POST['newpoint_nonce'], 'newpoint' ))
+            if ( isset( $_POST['newpoint_nonce'] ) && !wp_verify_nonce( $_POST['newpoint_nonce'], 'newpoint_anon' ))
                 return;
             else
                 $verified_submit = 0;
@@ -343,7 +343,12 @@ class SomeMaps {
      * Ajax reverse geocoder for points localization
      */
     function reverse_geocode() {
-        if( $_SERVER['REMOTE_ADDR'] != $_SERVER['SERVER_ADDR'] )
+        if( !isset( $_SERVER['HTTP_REFERER'] ) )
+            return;
+        
+        $referer = parse_url( $_SERVER['HTTP_REFERER'] );
+        
+        if( gethostbyname( $referer['host'] ) != $_SERVER['SERVER_ADDR'] )
             return;
         
         if( !isset( $_GET['ajax_reverse_geocode'] ) )
